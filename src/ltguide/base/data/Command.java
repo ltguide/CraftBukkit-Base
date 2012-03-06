@@ -95,11 +95,11 @@ public class Command {
 	
 	public void sendSyntax(final CommandSender sender, final String _label) {
 		label = _label;
-		if (sender.hasPermission(permission)) Base.send(sender, Message.getText("SYNTAX", getSyntax(), getHelp()));
+		if ("".equals(permission) || Base.hasPermission(sender, permission)) Base.send(sender, Message.getText("SYNTAX", getSyntax(), getHelp()));
 	}
 	
 	public Command init(final CommandSender sender, final String _label, final List<String> list) throws CommandException {
-		if (!sender.hasPermission(permission)) throw new CommandException(Message.get("PERMISSION"));
+		if (!"".equals(permission) && !Base.hasPermission(sender, permission)) throw new CommandException(Message.get("PERMISSION"));
 		
 		setSender(sender);
 		label = _label;

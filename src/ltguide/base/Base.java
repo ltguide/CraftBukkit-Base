@@ -6,6 +6,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import ltguide.base.data.Command;
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.permission.Permission;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Server;
@@ -21,11 +23,21 @@ public class Base {
 	private static String name;
 	private static Server server;
 	private static long startTime;
+	private static Permission permission = null;
+	private static Economy economy = null;
 	
 	public static void init(final JavaPlugin instance) {
 		server = instance.getServer();
 		logger = server.getLogger();
 		name = instance.getDescription().getName();
+	}
+	
+	public static void useEconomy() {
+		economy = server.getServicesManager().getRegistration(Economy.class).getProvider();
+	}
+	
+	public static void usePermission() {
+		permission = server.getServicesManager().getRegistration(Permission.class).getProvider();
 	}
 	
 	public static void setDebug(final boolean _debug) {
@@ -110,5 +122,18 @@ public class Base {
 			strings.add(player.getName());
 		
 		return joinString(strings.toArray(), ", ", 0, strings.size());
+	}
+	
+	public static Economy getEconomy() {
+		return economy;
+	}
+	
+	public static boolean hasAccount(final CommandSender sender) {
+		return economy != null ? economy.hasAccount(sender.getName()) : false;
+	}
+	
+	public static boolean hasPermission(final CommandSender sender, final String arg) {
+		if (permission != null) return permission.has(sender, arg);
+		return sender.hasPermission(arg);
 	}
 }
