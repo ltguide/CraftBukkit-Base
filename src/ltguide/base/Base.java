@@ -12,6 +12,7 @@ import net.milkbowl.vault.permission.Permission;
 import org.bukkit.ChatColor;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -73,6 +74,10 @@ public class Base {
 			severe("\t" + stack.toString());
 		
 		severe("---------------------------------------");
+	}
+	
+	public static void configWarning(final ConfigurationSection cs, final String key, final Object value) {
+		warning(" $ invalid setting: " + cs.getCurrentPath() + "." + key + " (" + value + ")");
 	}
 	
 	public static void debug(final String msg) {
