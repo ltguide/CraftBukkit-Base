@@ -7,8 +7,6 @@ import java.io.InputStream;
 
 import ltguide.base.Base;
 import ltguide.base.Debug;
-import ltguide.clearinventory.data.Commands;
-import ltguide.clearinventory.data.Messages;
 
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -76,14 +74,14 @@ public class Configuration extends YamlConfiguration {
 		}
 	}
 	
-	public void setDefaults() {
+	public void setDefaults(final IEnum[] messages, final IEnum[] commands) {
 		options().copyDefaults(true);
 		Base.setDebug(getBoolean("debug"));
 		
-		for (final Messages messages : Messages.values())
-			Message.setConfig(messages.name(), getString("messages." + messages.name().toLowerCase()));
+		for (final IEnum message : messages)
+			Message.setConfig(message.name(), getString("messages." + message.name().toLowerCase()));
 		
-		for (final Commands command : Commands.values()) {
+		for (final IEnum command : commands) {
 			final String path = "commands." + command.name().toLowerCase();
 			
 			Command.setConfig(command.name(), getString(path + ".description"), null);
