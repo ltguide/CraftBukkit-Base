@@ -7,11 +7,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.SortedMap;
 
+import ltguide.base.Base;
 import ltguide.base.exceptions.HttpException;
 
 public class HttpUtils {
@@ -21,6 +23,18 @@ public class HttpUtils {
 	
 	public static InputStream get(final String url) throws HttpException {
 		return getResponse(setupConnection(url));
+	}
+	
+	public static void ftp(final String url, final File file) throws HttpException {
+		try {
+			final URLConnection connection = new URL(url).openConnection();
+			
+			send(new FileInputStream(file), connection.getOutputStream());
+		}
+		catch (final IOException e) {
+			throw new HttpException(e);
+		}
+		
 	}
 	
 	public static InputStream put(final String url, final String auth, final File file) throws HttpException {
@@ -35,23 +49,25 @@ public class HttpUtils {
 			connection.setRequestProperty("Content-Length", String.valueOf(length));
 			connection.setRequestProperty("Content-Encoding", "application/octet-stream");
 			
-			final InputStream inStream = new FileInputStream(file);
-			final OutputStream outStream = connection.getOutputStream();
-			try {
-				final byte[] buf = new byte[4096];
-				int len;
-				
-				while ((len = inStream.read(buf)) > -1)
-					if (len > 0) outStream.write(buf, 0, len);
-			}
-			finally {
-				inStream.close();
-			}
+			send(new FileInputStream(file), connection.getOutputStream());
 			
 			return getResponse(connection);
 		}
 		catch (final IOException e) {
 			throw new HttpException(e);
+		}
+	}
+	
+	private static void send(final InputStream inStream, final OutputStream outStream) throws IOException {
+		try {
+			final byte[] buf = new byte[Base.bufferSize];
+			int len;
+			
+			while ((len = inStream.read(buf)) > -1)
+				if (len > 0) outStream.write(buf, 0, len);
+		}
+		finally {
+			inStream.close();
 		}
 	}
 	
