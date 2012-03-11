@@ -1,9 +1,8 @@
 package ltguide.base.data;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import ltguide.base.Base;
 import ltguide.base.exceptions.CommandException;
@@ -12,60 +11,50 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class Command {
-	private static Map<String, Command> commands = new HashMap<String, Command>();
-	
+	private final Base plugin;
 	private final String name;
 	private final String permission;
-	private final Message message;
+	private final IMessage message;
 	private final String syntax;
 	private final boolean usesTarget;
-	private String help;
-	private String broadcast;
+	private final String help;
+	private final String broadcast;
 	private CommandSender sender;
-	private String label;
 	private List<String> args;
 	private Player target = null;
+	private boolean isSubCommand = true;
 	
-	public Command(final String name, final String permission, final Message message, final String syntax, final boolean usesTarget) {
-		this.name = name;
-		this.permission = permission;
-		this.message = message;
-		this.syntax = syntax;
-		this.usesTarget = usesTarget;
-	}
-	
-	public static void put(final Command handle) {
-		commands.put(handle.name, handle);
-	}
-	
-	public static void setConfig(final String name, final String text, final String permission) {
-		commands.put(name, commands.get(name).setHelp(text).setBroadcast(permission));
+	public Command(final Base instance, final ICommand command, final String help, final String broadcast) {
+		plugin = instance;
+		
+		name = command.name();
+		permission = command.permission();
+		message = command.message();
+		syntax = command.syntax();
+		usesTarget = command.usesTarget();
+		this.help = help;
+		this.broadcast = broadcast;
 	}
 	
 	public String getMessage(final Object... args) {
-		return message.getText(args);
+		return plugin.messages.get(message.name()).getText(args);
 	}
 	
-	public String getSyntax() {
-		return String.format("/%s %s %s", label, name, syntax);
+	public String getSyntax(final String label) {
+		if (isSubCommand) return String.format("/%s %s %s", label, name, syntax);
+		return String.format("/%s %s", label, syntax);
+	}
+	
+	public void setCommand() {
+		isSubCommand = false;
 	}
 	
 	public String getHelp() {
 		return help.replaceAll("(?i)&([0-F])", "\u00A7$1");
 	}
 	
-	public Command setHelp(final String text) {
-		help = text;
-		return this;
-	}
-	
 	public String getBroadcast() {
 		return broadcast;
-	}
-	
-	public Command setBroadcast(final String permission) {
-		broadcast = permission;
-		return this;
 	}
 	
 	public CommandSender getSender() {
@@ -93,34 +82,57 @@ public class Command {
 		return syntax.length() - syntax.replace("<", "").length();
 	}
 	
-	public void sendSyntax(final CommandSender sender, final String _label) {
-		label = _label;
-		if ("".equals(permission) || Base.hasPermission(sender, permission)) Base.send(sender, Message.getText("SYNTAX", getSyntax(), getHelp()));
+	public boolean hasPermission() {
+		return hasPermission(sender);
 	}
 	
-	public Command init(final CommandSender sender, final String _label, final List<String> list) throws CommandException {
-		if (!"".equals(permission) && !Base.hasPermission(sender, permission)) throw new CommandException(Message.get("PERMISSION"));
-		
+	public boolean hasPermission(final CommandSender sender) {
+		return "".equals(permission) || plugin.hasPermission(sender, permission);
+	}
+	
+	public void sendInfo(final CommandSender sender, final String label) {
+		if (hasPermission(sender)) plugin.send(sender, plugin.getMessage("SYNTAX", getSyntax(label), getHelp()));
+	}
+	
+	public Command init(final CommandSender sender, final String label, final String[] list) throws CommandException {
 		setSender(sender);
-		label = _label;
 		
-		args = new ArrayList<String>(list);
+		if (!hasPermission()) throw new CommandException(plugin.getMessage("PERMISSION"));
+		
+		args = new ArrayList<String>(Arrays.asList(list));
 		args.remove(0);
 		
-		if (args.size() > 0) for (final String option : args)
-			if (option.startsWith("@")) {
-				final List<Player> matches = sender.getServer().matchPlayer(option.substring(1));
-				if (matches.size() == 1) setTarget(matches.get(0));
-				else if (matches.size() > 1) throw new CommandException(Message.get("TARGET_RESULTS"), Base.joinPlayers(matches));
+		if (usesTarget) {
+			if (args.size() > 0) {
+				boolean foundAt = false;
+				for (final String arg : args)
+					if (arg.startsWith("@")) {
+						foundAt = true;
+						
+						findPlayer(arg.substring(1));
+						
+						args.remove(arg);
+						break;
+					}
 				
-				args.remove(option);
-				break;
+				if (!foundAt) {
+					findPlayer(args.get(0));
+					args.remove(0);
+				}
 			}
+			
+			if (target == null) throw new CommandException(plugin.getMessage("TARGET_REQUIRED"));
+		}
 		
-		if (usesTarget && target == null) throw new CommandException(Message.get("TARGET_REQUIRED"));
-		
-		if (getRequiredArgs() > args.size()) throw new CommandException(Message.get("SYNTAX", getSyntax(), getHelp()));
+		if (getRequiredArgs() > args.size()) throw new CommandException(plugin.getMessage("SYNTAX"), getSyntax(label), getHelp());
 		
 		return this;
+	}
+	
+	private void findPlayer(final String name) throws CommandException {
+		final List<Player> matches = sender.getServer().matchPlayer(name);
+		if (matches.size() == 0) setTarget(null);
+		else if (matches.size() == 1) setTarget(matches.get(0));
+		else throw new CommandException(plugin.getMessage("TARGET_RESULTS"), plugin.joinPlayers(matches));
 	}
 }

@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import ltguide.base.Base;
+import ltguide.base.Debug;
 
 public class DirUtils {
 	public static void delete(final File target) {
@@ -48,7 +49,7 @@ public class DirUtils {
 					if (len > 0) outStream.write(buf, 0, len);
 			}
 			catch (final IOException e) {
-				Base.debug(" | unable to copy file: " + srcFile);
+				Debug.warning(" | unable to copy file: " + srcFile);
 			}
 		}
 		finally {

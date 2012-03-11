@@ -12,6 +12,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import ltguide.base.Base;
+import ltguide.base.Debug;
 
 public class ZipUtils {
 	private static FilenameFilter filter;
@@ -85,7 +86,7 @@ public class ZipUtils {
 					if (len > 0) zipOutStream.write(buf, 0, len);
 			}
 			catch (final IOException e) {
-				Base.debug(" | unable to add file: " + srcFile);
+				Debug.warning(" | unable to add file: " + srcFile);
 			}
 			finally {
 				zipOutStream.closeEntry();

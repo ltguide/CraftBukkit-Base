@@ -1,71 +1,77 @@
 package ltguide.base;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import ltguide.base.data.Command;
+import ltguide.base.data.ICommand;
+import ltguide.base.data.Message;
+import ltguide.base.exceptions.CommandException;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class Base {
+public class Base extends JavaPlugin {
 	public static final int bufferSize = 4 * 1024;
-	
-	private static boolean debug = true;
-	private static Logger logger;
-	private static String name;
-	private static Server server;
-	private static long startTime;
 	private static Permission permission = null;
 	private static Economy economy = null;
 	
-	public static void init(final JavaPlugin instance) {
-		server = instance.getServer();
-		logger = server.getLogger();
-		name = instance.getDescription().getName();
+	public LinkedHashMap<String, Command> commands = new LinkedHashMap<String, Command>();
+	public HashMap<String, Message> messages = new HashMap<String, Message>();
+	private boolean debug = true;
+	private Logger logger;
+	private long startTime;
+	public Command command;
+	
+	@Override
+	public void onEnable() {
+		logger = getLogger();
 	}
 	
-	public static void useEconomy() {
-		economy = server.getServicesManager().getRegistration(Economy.class).getProvider();
+	public void useEconomy() {
+		economy = getProvider(Economy.class);
 	}
 	
-	public static void usePermission() {
-		permission = server.getServicesManager().getRegistration(Permission.class).getProvider();
+	public void usePermission() {
+		permission = getProvider(Permission.class);
 	}
 	
-	public static void setDebug(final boolean _debug) {
+	public <T> T getProvider(final Class<T> clazz) {
+		final RegisteredServiceProvider<T> rsp = getServer().getServicesManager().getRegistration(clazz);
+		return rsp == null ? null : rsp.getProvider();
+	}
+	
+	public void setDebug(final boolean _debug) {
 		debug = _debug;
 	}
 	
-	public static void info(final String msg) {
+	public void info(final String msg) {
 		log(Level.INFO, msg);
 	}
 	
-	public static void warning(final String msg) {
+	public void warning(final String msg) {
 		log(Level.WARNING, msg);
 	}
 	
-	public static void severe(final String msg) {
+	public void severe(final String msg) {
 		log(Level.SEVERE, msg);
 	}
 	
-	public static void log(final Level level, final String msg) {
-		logRaw(level, "[" + name + "] " + msg);
-	}
-	
-	private static void logRaw(final Level level, final String msg) {
+	private void log(final Level level, final String msg) {
 		logger.log(level, ChatColor.stripColor(msg));
 	}
 	
-	public static void logException(final Exception e, final String msg) {
+	public void logException(final Exception e, final String msg) {
 		severe("---------------------------------------");
 		if (!"".equals(msg)) severe("# " + msg);
 		
@@ -76,44 +82,52 @@ public class Base {
 		severe("---------------------------------------");
 	}
 	
-	public static void configWarning(final ConfigurationSection cs, final String key, final Object value) {
+	public void configWarning(final ConfigurationSection cs, final String key, final Object value) {
 		warning(" $ invalid setting: " + cs.getCurrentPath() + "." + key + " (" + value + ")");
 	}
 	
-	public static void debug(final String msg) {
-		if (debug || Debug.ON) Base.info(msg);
+	public void debug(final String msg) {
+		if (debug || Debug.ON) info(msg);
 	}
 	
-	public static void send(final CommandSender sender, final String msg) {
+	public void send(final CommandSender sender, final Message message) {
+		send(sender, message.getText());
+	}
+	
+	public void send(final CommandSender sender, final String msg) {
 		if (sender instanceof Player) {
 			sender.sendMessage(msg);
 			info("->" + sender.getName() + " " + msg);
 		}
-		else logRaw(Level.INFO, msg);
+		else log(Level.INFO, msg);
 	}
 	
-	public static void broadcast(final CommandSender sender, final String permission, final String msg) {
+	public void broadcast(final CommandSender sender) {
+		broadcast(sender, command);
+	}
+	
+	public void broadcast(final CommandSender sender, final Command command) {
+		broadcast(sender, command.getBroadcast(), command.getMessage(sender.getName()));
+	}
+	
+	public void broadcast(final CommandSender sender, final String permission, final String msg) {
 		if (permission == null || "".equals(permission)) send(sender, msg);
-		else server.broadcast(msg, permission);
+		else getServer().broadcast(msg, permission);
 	}
 	
-	public static void broadcast(final CommandSender sender, final Command command) {
-		Base.broadcast(sender, command.getBroadcast(), command.getMessage(sender.getName()));
-	}
-	
-	public static long startTime() {
+	public long startTime() {
 		return startTime = System.nanoTime();
 	}
 	
-	public static String stopTime() {
+	public String stopTime() {
 		return stopTime(startTime);
 	}
 	
-	public static String stopTime(final long startTime) {
+	public String stopTime(final long startTime) {
 		return String.format("%.2fms", (System.nanoTime() - startTime) * 1e-6);
 	}
 	
-	public static String joinString(final Object[] objects, final String separator, final int first, final int last) {
+	public String joinString(final Object[] objects, final String separator, final int first, final int last) {
 		final StringBuilder sb = new StringBuilder(objects[first].toString());
 		for (int i = first + 1; i < last; i++)
 			sb.append(separator + objects[i].toString());
@@ -121,7 +135,7 @@ public class Base {
 		return sb.toString();
 	}
 	
-	public static String joinPlayers(final List<Player> players) {
+	public String joinPlayers(final List<Player> players) {
 		final List<String> strings = new ArrayList<String>();
 		for (final Player player : players)
 			strings.add(player.getName());
@@ -133,12 +147,49 @@ public class Base {
 		return economy;
 	}
 	
-	public static boolean hasAccount(final CommandSender sender) {
+	public boolean hasAccount(final CommandSender sender) {
 		return economy != null ? economy.hasAccount(sender.getName()) : false;
 	}
 	
-	public static boolean hasPermission(final CommandSender sender, final String arg) {
+	public boolean hasPermission(final CommandSender sender, final String arg) {
 		if (permission != null) return permission.has(sender, arg);
 		return sender.hasPermission(arg);
 	}
+	
+	public Message getMessage(final String name) {
+		return messages.get(name);
+	}
+	
+	public String getMessage(final String name, final Object... args) {
+		return messages.get(name).getText(args);
+	}
+	
+	public Command getCmd(final String name) {
+		return commands.get(name);
+	}
+	
+	public void initCommand(final ICommand command, final CommandSender sender, final String label, final String[] args) throws CommandException {
+		this.command = getCmd(command.name()).init(sender, label, args);
+	}
+	
+	public boolean sendCommands(final CommandSender sender, final String label) {
+		for (final Command command : commands.values())
+			command.sendInfo(sender, label);
+		
+		return true;
+	}
+	/*public Command getCmd(final String cmd, final String subCmd) {
+		return commands.get(cmd).get(subCmd);
+	}
+	
+	public void initSubCommand(final ICommand command, final CommandSender sender, final String label, final String[] args) throws CommandException {
+		this.command = getCmd("", command.name()).init(sender, label, args);
+	}
+	
+	public boolean sendSubCommands(final CommandSender sender, final org.bukkit.command.Command c, final String label) {
+		for (final Command command : commands.get(c.getName().toUpperCase()).values())
+			command.sendInfo(sender, label);
+		
+		return true;
+	}*/
 }

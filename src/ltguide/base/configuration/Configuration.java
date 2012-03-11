@@ -1,4 +1,4 @@
-package ltguide.base.data;
+package ltguide.base.configuration;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -7,22 +7,25 @@ import java.io.InputStream;
 
 import ltguide.base.Base;
 import ltguide.base.Debug;
+import ltguide.base.data.Command;
+import ltguide.base.data.ICommand;
+import ltguide.base.data.IMessage;
+import ltguide.base.data.Message;
 
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.error.YAMLException;
 
 public class Configuration extends YamlConfiguration {
 	private final File file;
-	protected final JavaPlugin plugin;
+	protected final Base plugin;
 	protected int[] oldVersion;
 	
-	public Configuration(final JavaPlugin instance) {
+	public Configuration(final Base instance) {
 		this(instance, "config.yml");
 	}
 	
-	public Configuration(final JavaPlugin instance, final String config) {
+	public Configuration(final Base instance, final String config) {
 		plugin = instance;
 		file = new File(plugin.getDataFolder(), config);
 	}
@@ -33,12 +36,12 @@ public class Configuration extends YamlConfiguration {
 		}
 		catch (final FileNotFoundException e) {}
 		catch (final IOException e) {
-			Base.logException(e, "cannot load " + file);
+			plugin.logException(e, "cannot load " + file);
 		}
 		catch (final InvalidConfigurationException e) {
-			if (e.getCause() instanceof YAMLException) Base.severe("Config file " + file + " isn't valid! " + e.getCause());
-			else if (e.getCause() == null || e.getCause() instanceof ClassCastException) Base.severe("Config file " + file + " isn't valid!");
-			else Base.logException(e, "cannot load " + file + ": " + e.getCause().getClass());
+			if (e.getCause() instanceof YAMLException) plugin.severe("Config file " + file + " isn't valid! " + e.getCause());
+			else if (e.getCause() == null || e.getCause() instanceof ClassCastException) plugin.severe("Config file " + file + " isn't valid!");
+			else plugin.logException(e, "cannot load " + file + ": " + e.getCause().getClass());
 		}
 		
 		final InputStream inStream = plugin.getResource(file.getName());
@@ -53,7 +56,7 @@ public class Configuration extends YamlConfiguration {
 		
 		if (isSet("version-nomodify")) old = getString("version-nomodify");
 		else {
-			Base.debug("writing default configuration to " + file);
+			plugin.debug("writing default configuration to " + file);
 			options().copyDefaults(true);
 		}
 		
@@ -70,21 +73,21 @@ public class Configuration extends YamlConfiguration {
 			save(file);
 		}
 		catch (final IOException e) {
-			Base.logException(e, "could not save " + file);
+			plugin.logException(e, "could not save " + file);
 		}
 	}
 	
-	public void setDefaults(final IEnum[] messages, final IEnum[] commands) {
+	public void setDefaults(final IMessage[] messages, final ICommand[] commands) {
 		options().copyDefaults(true);
-		Base.setDebug(getBoolean("debug"));
+		plugin.setDebug(getBoolean("debug"));
 		
-		for (final IEnum message : messages)
-			Message.setConfig(message.name(), getString("messages." + message.name().toLowerCase()));
+		for (final IMessage message : messages)
+			plugin.messages.put(message.name(), new Message(plugin, message, getString("messages." + message.name().toLowerCase())));
 		
-		for (final IEnum command : commands) {
+		for (final ICommand command : commands) {
 			final String path = "commands." + command.name().toLowerCase();
 			
-			Command.setConfig(command.name(), getString(path + ".description"), null);
+			plugin.commands.put(command.name(), new Command(plugin, command, getString(path + ".description"), getString(path + ".broadcast")));
 		}
 	}
 	

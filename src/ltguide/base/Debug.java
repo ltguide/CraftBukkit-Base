@@ -2,17 +2,15 @@ package ltguide.base;
 
 import java.util.logging.Logger;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 public final class Debug {
 	public static final boolean ON = true; // change to false for release
-	private static Logger logger;
-	
-	public static void init(final JavaPlugin instance) {
-		logger = instance.getServer().getLogger();
-	}
+	private static Logger logger = Logger.getLogger("Minecraft");
 	
 	public static void info(final String msg) {
 		logger.info("# " + msg);
+	}
+	
+	public static void warning(final String msg) {
+		logger.warning(msg);
 	}
 }
