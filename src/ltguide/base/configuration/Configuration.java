@@ -43,7 +43,10 @@ public class Configuration extends YamlConfiguration {
 			plugin.logException(e, "cannot load " + file);
 		}
 		catch (final InvalidConfigurationException e) {
-			if (e.getCause() instanceof YAMLException) plugin.severe("Config file " + file + " isn't valid! " + e.getCause());
+			if (e.getCause() instanceof YAMLException) {
+				plugin.severe("Config file " + file + " isn't valid!");
+				plugin.severe("Because: " + e.getCause());
+			}
 			else if (e.getCause() == null || e.getCause() instanceof ClassCastException) plugin.severe("Config file " + file + " isn't valid!");
 			else plugin.logException(e, "cannot load " + file + ": " + e.getCause().getClass());
 			
