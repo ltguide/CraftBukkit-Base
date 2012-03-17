@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,6 +34,7 @@ public class Base extends JavaPlugin {
 	private Logger logger;
 	private long startTime;
 	public Command command;
+	public String messagePrefix;
 	
 	@Override
 	public void onEnable() {
@@ -71,15 +74,21 @@ public class Base extends JavaPlugin {
 		logger.log(level, ChatColor.stripColor(msg));
 	}
 	
-	public void logException(final Exception e, final String msg) {
-		severe("---------------------------------------");
+	public void logException(Throwable e, final String msg) {
+		severe("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		if (!"".equals(msg)) severe("# " + msg);
 		
 		severe(e.toString());
 		for (final StackTraceElement stack : e.getStackTrace())
 			severe("\t" + stack.toString());
 		
-		severe("---------------------------------------");
+		if ((e = e.getCause()) != null) {
+			severe("caused by: " + e.toString());
+			for (final StackTraceElement stack : e.getStackTrace())
+				severe("\t" + stack.toString());
+		}
+		
+		severe("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 	}
 	
 	public void configWarning(final ConfigurationSection cs, final String key, final Object value) {
@@ -115,6 +124,23 @@ public class Base extends JavaPlugin {
 		else getServer().broadcast(msg, permission);
 	}
 	
+	public String findGroup(final Object object) {
+		if (object == null) return null;
+		
+		if (object instanceof Boolean) {
+			if ((Boolean) object) return "bukkit.broadcast.user";
+			
+			return null;
+		}
+		
+		final String group = String.valueOf(object);
+		
+		if ("users".equalsIgnoreCase(group)) return "bukkit.broadcast.user";
+		if ("admins".equalsIgnoreCase(group)) return "bukkit.broadcast.admin";
+		
+		return getName().toLowerCase() + "." + group;
+	}
+	
 	public long startTime() {
 		return startTime = System.nanoTime();
 	}
@@ -125,6 +151,42 @@ public class Base extends JavaPlugin {
 	
 	public String stopTime(final long startTime) {
 		return String.format("%.2fms", (System.nanoTime() - startTime) * 1e-6);
+	}
+	
+	public String convertMilli2Time(final long millis) {
+		return convertSec2Time((int) (millis / 1000));
+	}
+	
+	public String convertSec2Time(int secs) {
+		final StringBuilder sb = new StringBuilder();
+		
+		if (secs < 0) {
+			secs *= -1;
+			sb.append(secs / 3600);
+			sb.append(":");
+			sb.append(secs % 3600 / 60);
+			return sb.toString();
+		}
+		
+		int c;
+		final Map<String, Integer> map = new TreeMap<String, Integer>();
+		map.put("d", 86400);
+		map.put("h", 3600);
+		map.put("m", 60);
+		map.put("s", 1);
+		
+		for (final Map.Entry<String, Integer> entry : map.entrySet())
+			if ((c = secs / entry.getValue()) > 0 || sb.length() > 0) {
+				secs %= entry.getValue();
+				sb.append(c);
+				sb.append(entry.getKey());
+				
+				if (secs == 0) break;
+			}
+		
+		if (sb.length() == 0) sb.append("0s");
+		
+		return sb.toString();
 	}
 	
 	public String joinString(final Object[] objects, final String separator, final int first, final int last) {
@@ -156,8 +218,8 @@ public class Base extends JavaPlugin {
 		return sender.hasPermission(arg);
 	}
 	
-	public Message getMessage(final String name) {
-		return messages.get(name);
+	public String getMessage(final String name) {
+		return messages.get(name).getText();
 	}
 	
 	public String getMessage(final String name, final Object... args) {
@@ -178,18 +240,8 @@ public class Base extends JavaPlugin {
 		
 		return true;
 	}
-	/*public Command getCmd(final String cmd, final String subCmd) {
-		return commands.get(cmd).get(subCmd);
-	}
 	
-	public void initSubCommand(final ICommand command, final CommandSender sender, final String label, final String[] args) throws CommandException {
-		this.command = getCmd("", command.name()).init(sender, label, args);
+	public String colorize(final String text) {
+		return text.replaceAll("(?i)&([0-F])", "\u00A7$1");
 	}
-	
-	public boolean sendSubCommands(final CommandSender sender, final org.bukkit.command.Command c, final String label) {
-		for (final Command command : commands.get(c.getName().toUpperCase()).values())
-			command.sendInfo(sender, label);
-		
-		return true;
-	}*/
 }

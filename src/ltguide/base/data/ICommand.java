@@ -5,7 +5,7 @@ public interface ICommand {
 	
 	String permission();
 	
-	IMessage message();
+	String message();
 	
 	String syntax();
 	

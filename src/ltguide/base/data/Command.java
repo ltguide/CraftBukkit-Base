@@ -14,30 +14,30 @@ public class Command {
 	private final Base plugin;
 	private final String name;
 	private final String permission;
-	private final IMessage message;
+	private final String message;
 	private final String syntax;
 	private final boolean usesTarget;
-	private final String help;
+	private final String description;
 	private final String broadcast;
 	private CommandSender sender;
 	private List<String> args;
 	private Player target = null;
 	private boolean isSubCommand = true;
 	
-	public Command(final Base instance, final ICommand command, final String help, final String broadcast) {
+	public Command(final Base instance, final ICommand command, final String description, final Object group) {
 		plugin = instance;
 		
 		name = command.name();
-		permission = command.permission();
+		permission = plugin.getName().toLowerCase() + "." + command.permission();
 		message = command.message();
 		syntax = command.syntax();
 		usesTarget = command.usesTarget();
-		this.help = help;
-		this.broadcast = broadcast;
+		this.description = plugin.colorize(description);
+		broadcast = plugin.findGroup(group);
 	}
 	
 	public String getMessage(final Object... args) {
-		return plugin.messages.get(message.name()).getText(args);
+		return plugin.getMessage(message, args);
 	}
 	
 	public String getSyntax(final String label) {
@@ -49,8 +49,8 @@ public class Command {
 		isSubCommand = false;
 	}
 	
-	public String getHelp() {
-		return help.replaceAll("(?i)&([0-F])", "\u00A7$1");
+	public String getDescription() {
+		return description;
 	}
 	
 	public String getBroadcast() {
@@ -91,7 +91,7 @@ public class Command {
 	}
 	
 	public void sendInfo(final CommandSender sender, final String label) {
-		if (hasPermission(sender)) plugin.send(sender, plugin.getMessage("SYNTAX", getSyntax(label), getHelp()));
+		if (hasPermission(sender)) plugin.send(sender, plugin.getMessage("SYNTAX", getSyntax(label), getDescription()));
 	}
 	
 	public Command init(final CommandSender sender, final String label, final String[] list) throws CommandException {
@@ -124,7 +124,7 @@ public class Command {
 			if (target == null) throw new CommandException(plugin.getMessage("TARGET_REQUIRED"));
 		}
 		
-		if (getRequiredArgs() > args.size()) throw new CommandException(plugin.getMessage("SYNTAX"), getSyntax(label), getHelp());
+		if (getRequiredArgs() > args.size()) throw new CommandException(plugin.getMessage("SYNTAX", getSyntax(label), getDescription()));
 		
 		return this;
 	}
@@ -133,6 +133,6 @@ public class Command {
 		final List<Player> matches = sender.getServer().matchPlayer(name);
 		if (matches.size() == 0) setTarget(null);
 		else if (matches.size() == 1) setTarget(matches.get(0));
-		else throw new CommandException(plugin.getMessage("TARGET_RESULTS"), plugin.joinPlayers(matches));
+		else throw new CommandException(plugin.getMessage("TARGET_RESULTS", plugin.joinPlayers(matches)));
 	}
 }
