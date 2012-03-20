@@ -16,6 +16,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 public class Configuration extends YamlConfiguration {
 	private final File file;
+	private final String name;
 	protected final Base plugin;
 	protected int[] oldVersion;
 	
@@ -23,9 +24,10 @@ public class Configuration extends YamlConfiguration {
 		this(instance, "config.yml");
 	}
 	
-	public Configuration(final Base instance, final String name) {
+	public Configuration(final Base instance, final String fileName) {
 		plugin = instance;
-		file = new File(plugin.getDataFolder(), name);
+		name = fileName;
+		file = new File(plugin.getDataFolder(), fileName);
 	}
 	
 	public void reload() {
@@ -47,14 +49,14 @@ public class Configuration extends YamlConfiguration {
 			else if (e.getCause() == null || e.getCause() instanceof ClassCastException) plugin.severe("Config file " + file + " isn't valid!");
 			else plugin.logException(e, "cannot load " + file + ": " + e.getCause().getClass());
 			
-			backup("invalid");
+			plugin.info("Saving a backup of " + name + " to " + backup("invalid"));
 		}
 		
 		final InputStream inStream = plugin.getResource(file.getName());
 		if (inStream != null) {
 			setDefaults(YamlConfiguration.loadConfiguration(inStream));
 			
-			if (!loaded) plugin.info("Writing default configuration to " + file);
+			if (!loaded) plugin.info("Writing default " + name + " to " + file);
 		}
 		
 		if (!loaded) {
@@ -64,32 +66,32 @@ public class Configuration extends YamlConfiguration {
 		else upgrade();
 	}
 	
-	public void backup(final String prefix) {
+	public File backup(final String prefix) {
 		try {
-			final File dest = new File(file.getParentFile(), prefix + "-" + file.getName());
-			plugin.info("Copying config file to " + dest);
-			DirUtils.copyFile(file, dest);
+			final File destFile = new File(plugin.getDataFolder() + File.separator + "old_configurations", prefix + "-" + name);
+			
+			destFile.getParentFile().mkdirs();
+			DirUtils.copyFile(file, destFile);
+			
+			return destFile;
 		}
 		catch (final Exception e) {
-			plugin.logException(e, "failed to copy config");
+			plugin.logException(e, "failed to copy " + name);
+			return null;
 		}
 	}
 	
 	private void upgrade() {
 		if (Debug.ON) Debug.info("upgrade() " + file);
 		
-		final String current = plugin.getDescription().getVersion();
-		
 		String old = "UNKNOWN";
 		if (isSet("version-nomodify")) old = getString("version-nomodify");
 		
-		if (current.equals(old)) return;
+		if (plugin.getDescription().getVersion().equals(old)) return;
 		
 		oldVersion = getVersionInt(old);
-		set("version-nomodify", current);
 		
-		plugin.warning("Migrating " + file + " from version " + old);
-		backup(old);
+		plugin.warning("Migrating " + name + " from version " + old + " (backup: " + backup(old) + ")");
 		migrate();
 		save();
 	}
@@ -100,6 +102,7 @@ public class Configuration extends YamlConfiguration {
 	
 	public void save() {
 		try {
+			set("version-nomodify", plugin.getDescription().getVersion());
 			save(file);
 		}
 		catch (final IOException e) {
@@ -126,7 +129,7 @@ public class Configuration extends YamlConfiguration {
 		for (int i = 0; i < compare.length && i < oldVersion.length; i++)
 			if (oldVersion[i] > compare[i]) return false;
 		
-		return true;
+		return compare.length >= oldVersion.length;
 	}
 	
 	protected void fixIntRange(final ConfigurationSection cs, final String key, final int min, final int max) {
