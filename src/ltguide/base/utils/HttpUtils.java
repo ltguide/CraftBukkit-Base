@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Scanner;
@@ -27,9 +26,7 @@ public class HttpUtils {
 	
 	public static void ftp(final String url, final File file) throws HttpException {
 		try {
-			final URLConnection connection = new URL(url).openConnection();
-			
-			send(new FileInputStream(file), connection.getOutputStream());
+			send(new FileInputStream(file), new URL(url).openConnection().getOutputStream());
 		}
 		catch (final IOException e) {
 			throw new HttpException(e);
@@ -68,6 +65,7 @@ public class HttpUtils {
 		}
 		finally {
 			inStream.close();
+			outStream.close();
 		}
 	}
 	
