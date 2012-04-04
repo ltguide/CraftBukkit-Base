@@ -17,6 +17,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 public class Configuration extends YamlConfiguration {
 	private final File file;
 	private final String name;
+	private boolean migrate;
 	protected final Base plugin;
 	protected int[] oldVersion;
 	
@@ -91,13 +92,25 @@ public class Configuration extends YamlConfiguration {
 		
 		oldVersion = getVersionInt(old);
 		
-		plugin.warning("Migrating " + name + " from version " + old + " (backup: " + backup(old) + ")");
+		migrate = false;
 		migrate();
+		
+		if (migrate) plugin.warning("Migrating " + name + " from version " + old + " (backup: " + backup(old) + ")");
+		
 		save();
 	}
 	
 	protected void migrate() {
 		if (Debug.ON) Debug.info("Configuration migrate()");
+	}
+	
+	protected boolean migrate(final int... compare) {
+		for (int i = 0; i < compare.length && i < oldVersion.length; i++)
+			if (oldVersion[i] > compare[i]) return false;
+		
+		if (compare.length < oldVersion.length) return false;
+		
+		return migrate = true;
 	}
 	
 	public void save() {
@@ -125,14 +138,14 @@ public class Configuration extends YamlConfiguration {
 		return num;
 	}
 	
-	protected boolean versionCompare(final int... compare) {
-		for (int i = 0; i < compare.length && i < oldVersion.length; i++)
-			if (oldVersion[i] > compare[i]) return false;
-		
-		return compare.length >= oldVersion.length;
-	}
-	
 	protected void fixIntRange(final ConfigurationSection cs, final String key, final int min, final int max) {
+		if (Debug.ON) Debug.info("checking " + cs.getCurrentPath() + "." + key);
+		
+		if (Debug.ON) {
+			final Object obj = cs.get(key);
+			Debug.info(" \\ " + obj + " (" + (obj == null ? obj : obj.getClass().getSimpleName()) + ")");
+		}
+		
 		final int value = cs.getInt(key);
 		if (value < min || value > max) {
 			cs.set(key, getDefaultSection().getInt(cs.getCurrentPath() + "." + key));
@@ -141,10 +154,38 @@ public class Configuration extends YamlConfiguration {
 	}
 	
 	protected void fixBoolean(final ConfigurationSection cs, final String key) {
+		if (Debug.ON) Debug.info("checking " + cs.getCurrentPath() + "." + key);
+		
+		if (Debug.ON) {
+			final Object obj = cs.get(key);
+			Debug.info(" \\ " + obj + " (" + (obj == null ? obj : obj.getClass().getSimpleName()) + ")");
+		}
+		
 		if (!cs.isBoolean(key)) {
 			cs.set(key, getDefaultSection().getBoolean(cs.getCurrentPath() + "." + key));
 			plugin.configWarning(cs, key, cs.get(key) + "; valid: true/false");
 		}
+	}
+	
+	protected int getTime(final ConfigurationSection cs, final String key) {
+		if (Debug.ON) Debug.info("checking " + cs.getCurrentPath() + "." + key);
+		
+		Object obj = cs.get(key);
+		if (obj != null) {
+			if (Debug.ON) Debug.info(" \\ " + obj + " (" + obj.getClass().getSimpleName() + ")");
+			
+			boolean valid = false;
+			if (obj instanceof Integer) valid = (Integer) obj > -1;
+			else if (obj instanceof String) valid = ((String) obj).matches("0|[1-9]\\d*[smhd]|(?:[0-1]?\\d|2[0-4]):[0-5][0-9]");
+			else valid = obj instanceof Boolean;
+			
+			if (!valid) {
+				plugin.configWarning(cs, key, obj);
+				obj = null;
+			}
+		}
+		
+		return getTime(obj);
 	}
 	
 	protected int getTime(final Object obj) {
