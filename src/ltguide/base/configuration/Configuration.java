@@ -175,9 +175,8 @@ public class Configuration extends YamlConfiguration {
 			if (Debug.ON) Debug.info(" \\ " + obj + " (" + obj.getClass().getSimpleName() + ")");
 			
 			boolean valid = false;
-			if (obj instanceof Integer) valid = (Integer) obj > -1;
-			else if (obj instanceof String) valid = ((String) obj).matches("0|[1-9]\\d*[smhd]|(?:[0-1]?\\d|2[0-4]):[0-5][0-9]");
-			else valid = obj instanceof Boolean;
+			if (obj instanceof String) valid = ((String) obj).matches("0|[1-9]\\d*[smhd]|(?:[0-1]?\\d|2[0-4]):[0-5][0-9]");
+			else valid = obj instanceof Boolean || obj instanceof Integer;
 			
 			if (!valid) {
 				plugin.configWarning(cs, key, obj);
