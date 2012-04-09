@@ -39,14 +39,23 @@ public class Base extends JavaPlugin {
 	@Override
 	public void onEnable() {
 		logger = getLogger();
+		
+		usePermission();
 	}
 	
 	public void useEconomy() {
-		economy = getProvider(Economy.class);
+		try {
+			economy = getProvider(Economy.class);
+		}
+		catch (final NoClassDefFoundError e) {}
 	}
 	
 	public void usePermission() {
-		permission = getProvider(Permission.class);
+		try {
+			permission = getProvider(Permission.class);
+			debug("Using Vault as provider");
+		}
+		catch (final NoClassDefFoundError e) {}
 	}
 	
 	public <T> T getProvider(final Class<T> clazz) {
@@ -164,7 +173,7 @@ public class Base extends JavaPlugin {
 			secs *= -1;
 			sb.append(secs / 3600);
 			sb.append(":");
-			sb.append(secs % 3600 / 60);
+			sb.append(String.format("%02d", secs % 3600 / 60));
 			return sb.toString();
 		}
 		
@@ -187,6 +196,10 @@ public class Base extends JavaPlugin {
 		if (sb.length() == 0) sb.append("0s");
 		
 		return sb.toString();
+	}
+	
+	public String joinString(final Object[] objects, final String separator) {
+		return joinString(objects, separator, 0, objects.length);
 	}
 	
 	public String joinString(final Object[] objects, final String separator, final int first, final int last) {
