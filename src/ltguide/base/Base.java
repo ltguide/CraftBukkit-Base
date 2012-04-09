@@ -198,6 +198,34 @@ public class Base extends JavaPlugin {
 		return sb.toString();
 	}
 	
+	public int getTime(final Object obj) {
+		if (obj instanceof Integer) return (Integer) obj;
+		
+		if (obj instanceof String) {
+			final String str = (String) obj;
+			if ("0".equals(str)) return 0;
+			
+			if (str.contains(":")) {
+				final String[] parts = str.split(":");
+				return 0 - Integer.parseInt(parts[0]) * 3600 - Integer.parseInt(parts[1]) * 60;
+			}
+			
+			int time = Integer.parseInt(str.substring(0, str.length() - 1));
+			if (time < 1) return 0;
+			
+			final String scale = str.substring(str.length() - 1);
+			if ("m".equals(scale)) time *= 60;
+			else if ("h".equals(scale)) time *= 3600;
+			else if ("d".equals(scale)) time *= 86400;
+			
+			return time;
+		}
+		
+		if (obj instanceof Boolean) return (Boolean) obj ? 1 : 0;
+		
+		return 0;
+	}
+	
 	public String joinString(final Object[] objects, final String separator) {
 		return joinString(objects, separator, 0, objects.length);
 	}
