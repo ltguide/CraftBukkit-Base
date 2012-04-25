@@ -162,8 +162,24 @@ public class Configuration extends YamlConfiguration {
 		}
 		
 		if (!cs.isBoolean(key)) {
-			cs.set(key, getDefaultSection().getBoolean(cs.getCurrentPath() + "." + key));
 			plugin.configWarning(cs, key, cs.get(key) + "; valid: true/false");
+			cs.set(key, getDefaultSection().getBoolean(cs.getCurrentPath() + "." + key));
+		}
+	}
+	
+	protected void fixSeparator(final ConfigurationSection cs, final String key) {
+		if (Debug.ON) Debug.info("checking " + cs.getCurrentPath() + "." + key);
+		
+		if (File.separatorChar == '\\') return;
+		
+		final String str = cs.getString(key);
+		if (str == null) return;
+		
+		final String value = str.replace("\\", "/");
+		
+		if (!value.equals(str)) {
+			plugin.configWarning(cs, key, str + "; valid: " + value);
+			cs.set(key, value);
 		}
 	}
 	
