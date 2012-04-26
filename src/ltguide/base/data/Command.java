@@ -91,7 +91,7 @@ public class Command {
 	}
 	
 	public void sendInfo(final CommandSender sender, final String label) {
-		if (hasPermission(sender)) plugin.send(sender, plugin.getMessage("SYNTAX", getSyntax(label), getDescription()));
+		if (hasPermission(sender) && !"".equals(getDescription())) plugin.send(sender, plugin.getMessage("SYNTAX", getSyntax(label), getDescription()));
 	}
 	
 	public Command init(final CommandSender sender, final String label, final String[] list) throws CommandException {
