@@ -285,6 +285,6 @@ public class Base extends JavaPlugin {
 	public String colorize(final String text) {
 		if (text == null) return "";
 		
-		return text.replaceAll("(?i)&([0-F])", "\u00A7$1");
+		return text.replaceAll("(?i)&([0-9A-FK-OR])", "\u00A7$1");
 	}
 }
